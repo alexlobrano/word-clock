@@ -94,10 +94,15 @@ void loop()
 {    
   displayTime(); // display the real-time clock data on the Serial Monitor,
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+  set_light("it", on);
+  set_light("is", on);
   set_light("half", on);
-  delay(1000); // every second
-  set_light("half", off);
-  delay(1000);
+  set_light("past", on);
+  set_light("twelve", on);
+  set_light("oclock", on);
+  set_light("happy (red)", on);
+  set_light("birthday (green)", on);
+  set_light("lexie (blue)", on);
   
 //  if(Serial.available()){
 //    if(Serial.peek() == 'l'){
@@ -477,10 +482,171 @@ void displayTime()
 
 void set_light(char const* text, led_state_t state)
 {
-    if(text == "half")
+    if(state == on)
     {
-        if(state == on) ShiftPWM.SetOne(3, 255);
-        else if(state == off) ShiftPWM.SetOne(3, 0);
+        if(text == "i") ShiftPWM.SetOne(0, 255);
+        else if(text == "t") ShiftPWM.SetOne(1, 255);
+        else if(text == "it")
+        {
+            ShiftPWM.SetOne(0, 255);
+            ShiftPWM.SetOne(1, 255);      
+        }
+        else if(text == "is") ShiftPWM.SetOne(2, 255);
+        else if(text == "ten") ShiftPWM.SetOne(3, 255);
+        else if(text == "half") ShiftPWM.SetOne(4, 255);
+        else if(text == "quarter") 
+        {
+            ShiftPWM.SetOne(5, 255);
+            ShiftPWM.SetOne(6, 255);
+        }
+        else if(text == "twenty")
+        {
+            ShiftPWM.SetOne(7, 255);
+            ShiftPWM.SetOne(8, 255);
+        }
+        else if(text == "five") ShiftPWM.SetOne(9, 255);
+        else if(text == "minutes")
+        {
+            ShiftPWM.SetOne(10, 255);
+            ShiftPWM.SetOne(11, 255);
+        }
+        else if(text == "happy (red)") ShiftPWM.SetOne(12, 255);
+        else if(text == "happy (green)") ShiftPWM.SetOne(13, 255);
+        else if(text == "happy (blue)") ShiftPWM.SetOne(14, 255);
+        else if(text == "past") ShiftPWM.SetOne(15, 255);
+        else if(text == "to") ShiftPWM.SetOne(16, 255);
+        else if(text == "birthday (red)")
+        {
+            ShiftPWM.SetOne(17, 255);
+            ShiftPWM.SetOne(20, 255);
+        }
+        else if(text == "birthday (green)") 
+        {
+            ShiftPWM.SetOne(18, 255);
+            ShiftPWM.SetOne(21, 255);
+        }
+        else if(text == "birthday (blue)")
+        {
+            ShiftPWM.SetOne(19, 255);
+            ShiftPWM.SetOne(22, 255);
+        }
+        else if(text == "three") ShiftPWM.SetOne(23, 255);
+        else if(text == "lexie (red)") ShiftPWM.SetOne(24, 255);
+        else if(text == "lexie (green)") ShiftPWM.SetOne(25, 255);
+        else if(text == "lexie (blue)") ShiftPWM.SetOne(26, 255);
+        else if(text == "eight") ShiftPWM.SetOne(27, 255);
+        else if(text == "one") ShiftPWM.SetOne(28, 255);
+        else if(text == "two") ShiftPWM.SetOne(29, 255);
+        else if(text == "four") ShiftPWM.SetOne(30, 255);
+        else if(text == "eleven")
+        {
+            ShiftPWM.SetOne(31, 255);
+            ShiftPWM.SetOne(32, 255);
+        }
+        else if(text == "nine") ShiftPWM.SetOne(33, 255);
+        else if(text == "seven") ShiftPWM.SetOne(34, 255);
+        else if(text == "five") ShiftPWM.SetOne(35, 255);
+        else if(text == "six") ShiftPWM.SetOne(36, 255);
+        else if(text == "love (red)") ShiftPWM.SetOne(37, 255);
+        else if(text == "love (green)") ShiftPWM.SetOne(38, 255);
+        else if(text == "love (blue)") ShiftPWM.SetOne(39, 255);
+        else if(text == "you (red)") ShiftPWM.SetOne(40, 255);
+        else if(text == "you (green)") ShiftPWM.SetOne(41, 255);
+        else if(text == "you (blue)") ShiftPWM.SetOne(42, 255);
+        else if(text == "ten") ShiftPWM.SetOne(43, 255);
+        else if(text == "twelve")
+        {
+            ShiftPWM.SetOne(44, 255);
+            ShiftPWM.SetOne(45, 255);
+        }
+        else if(text == "oclock") 
+        {
+            ShiftPWM.SetOne(46, 255);
+            ShiftPWM.SetOne(47, 255);
+        }  
+    }
+    else if(state == off)
+    {
+        if(text == "i") ShiftPWM.SetOne(0, 0);
+        else if(text == "t") ShiftPWM.SetOne(1, 0);
+        else if(text == "it")
+        {
+            ShiftPWM.SetOne(0, 0);
+            ShiftPWM.SetOne(1, 0);      
+        }
+        else if(text == "is") ShiftPWM.SetOne(2, 0);
+        else if(text == "ten") ShiftPWM.SetOne(3, 0);
+        else if(text == "half") ShiftPWM.SetOne(4, 0);
+        else if(text == "quarter") 
+        {
+            ShiftPWM.SetOne(5, 0);
+            ShiftPWM.SetOne(6, 0);
+        }
+        else if(text == "twenty")
+        {
+            ShiftPWM.SetOne(7, 0);
+            ShiftPWM.SetOne(8, 0);
+        }
+        else if(text == "five") ShiftPWM.SetOne(9, 0);
+        else if(text == "minutes")
+        {
+            ShiftPWM.SetOne(10, 0);
+            ShiftPWM.SetOne(11, 0);
+        }
+        else if(text == "happy (red)") ShiftPWM.SetOne(12, 0);
+        else if(text == "happy (green)") ShiftPWM.SetOne(13, 0);
+        else if(text == "happy (blue)") ShiftPWM.SetOne(14, 0);
+        else if(text == "past") ShiftPWM.SetOne(15, 0);
+        else if(text == "to") ShiftPWM.SetOne(16, 0);
+        else if(text == "birthday (red)")
+        {
+            ShiftPWM.SetOne(17, 0);
+            ShiftPWM.SetOne(20, 0);
+        }
+        else if(text == "birthday (green)") 
+        {
+            ShiftPWM.SetOne(18, 0);
+            ShiftPWM.SetOne(21, 0);
+        }
+        else if(text == "birthday (blue)")
+        {
+            ShiftPWM.SetOne(19, 0);
+            ShiftPWM.SetOne(22, 0);
+        }
+        else if(text == "three") ShiftPWM.SetOne(23, 0);
+        else if(text == "lexie (red)") ShiftPWM.SetOne(24, 0);
+        else if(text == "lexie (green)") ShiftPWM.SetOne(25, 0);
+        else if(text == "lexie (blue)") ShiftPWM.SetOne(26, 0);
+        else if(text == "eight") ShiftPWM.SetOne(27, 0);
+        else if(text == "one") ShiftPWM.SetOne(28, 0);
+        else if(text == "two") ShiftPWM.SetOne(29, 0);
+        else if(text == "four") ShiftPWM.SetOne(30, 0);
+        else if(text == "eleven")
+        {
+            ShiftPWM.SetOne(31, 0);
+            ShiftPWM.SetOne(32, 0);
+        }
+        else if(text == "nine") ShiftPWM.SetOne(33, 0);
+        else if(text == "seven") ShiftPWM.SetOne(34, 0);
+        else if(text == "five") ShiftPWM.SetOne(35, 0);
+        else if(text == "six") ShiftPWM.SetOne(36, 0);
+        else if(text == "love (red)") ShiftPWM.SetOne(37, 0);
+        else if(text == "love (green)") ShiftPWM.SetOne(38, 0);
+        else if(text == "love (blue)") ShiftPWM.SetOne(39, 0);
+        else if(text == "you (red)") ShiftPWM.SetOne(40, 0);
+        else if(text == "you (green)") ShiftPWM.SetOne(41, 0);
+        else if(text == "you (blue)") ShiftPWM.SetOne(42, 0);
+        else if(text == "ten") ShiftPWM.SetOne(43, 0);
+        else if(text == "twelve")
+        {
+            ShiftPWM.SetOne(44, 0);
+            ShiftPWM.SetOne(45, 0);
+        }
+        else if(text == "oclock") 
+        {
+            ShiftPWM.SetOne(46, 0);
+            ShiftPWM.SetOne(47, 0);
+        }  
     }
 }
 
