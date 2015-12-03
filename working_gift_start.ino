@@ -29,7 +29,6 @@ const int ShiftPWM_latchPin=5;
 // const int ShiftPWM_dataPin = 6;
 // const int ShiftPWM_clockPin = 4;
 
-
 // If your LED's turn on if the pin is low, set this to true, otherwise set it to false.
 const bool ShiftPWM_invertOutputs = false;
 
@@ -39,6 +38,11 @@ const bool ShiftPWM_invertOutputs = false;
 const bool ShiftPWM_balanceLoad = false;
 
 #include <ShiftPWM.h>   // include ShiftPWM.h after setting the pins!
+
+typedef enum{
+  off,
+  on
+} led_state_t;
 
 // Function prototypes (telling the compiler these functions exist).
 void oneByOne(void);
@@ -63,6 +67,8 @@ unsigned int fadingMode = 0; //start with all LED's off.
 
 unsigned long startTime = 0; // start time for the chosen fading mode
 
+byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+
 void setup(){
   while(!Serial){
     delay(100); 
@@ -79,107 +85,112 @@ void setup(){
   
   ShiftPWM.Start(pwmFrequency,maxBrightness);
   printInstructions();
-    // set the initial time here:
+  // set the initial time here:
   // DS3231 seconds, minutes, hours, day, date, month, year
-  setDS3231time(25,26,20,4,2,12,15);
+  //setDS3231time(10,05,21,4,2,12,15);
 }
 
 void loop()
 {    
   displayTime(); // display the real-time clock data on the Serial Monitor,
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+  set_light("half", on);
   delay(1000); // every second
-  if(Serial.available()){
-    if(Serial.peek() == 'l'){
-      // Print information about the interrupt frequency, duration and load on your program
-      ShiftPWM.PrintInterruptLoad();
-    }
-    else if(Serial.peek() == 'm'){
-      // Print instructions again
-      printInstructions();
-    }
-    else{
-      fadingMode = Serial.parseInt(); // read a number from the serial port to set the mode
-      Serial.print("Mode set to "); 
-      Serial.print(fadingMode); 
-      Serial.print(": ");
-      startTime = millis();
-      switch(fadingMode){
-      case 0:
-        Serial.println("All LED's off");
-        break;
-      case 1:
-        Serial.println("Fade in and out one by one");
-        break;
-      case 2:
-        Serial.println("Fade in and out all LED's");
-        break;
-      case 3:
-        Serial.println("Fade in and out 2 LED's in parallel");
-        break;
-      case 4:
-        Serial.println("Alternating LED's in 6 different colors");
-        break;
-      case 5:
-        Serial.println("Hue shift all LED's");
-        break;
-      case 6:
-        Serial.println("Setting random LED's to random color");
-        break;
-      case 7:
-        Serial.println("Fake a VU meter");
-        break;
-      case 8:
-        Serial.println("Display a color shifting rainbow as wide as the LED's");
-        break;         
-      case 9:
-        Serial.println("Display a color shifting rainbow wider than the LED's");
-        break;     
-      default:
-        Serial.println("Unknown mode!");
-        break;
-      }
-    }
-    while (Serial.read() >= 0){
-      ; // flush remaining characters
-    }
-  }
-  switch(fadingMode){
-  case 0:
-    // Turn all LED's off.
-    ShiftPWM.SetAll(0);
-    break;
-  case 1:
-    oneByOne();
-    break;
-  case 2:
-    inOutAll();
-    break;
-  case 3:
-    inOutTwoLeds();
-    break;
-  case 4:
-    alternatingColors();
-    break;
-  case 5:
-    hueShiftAll();
-    break;
-  case 6:
-    randomColors();
-    break;
-  case 7:
-    fakeVuMeter();
-    break;
-  case 8:
-    rgbLedRainbow(3000,numRGBLeds);
-    break;
-  case 9:
-    rgbLedRainbow(10000,5*numRGBLeds);    
-    break;   
-  default:
-    Serial.println("Unknown Mode!");
-    delay(1000);
-    break;
-  }
+  set_light("half", off);
+  delay(1000);
+  
+//  if(Serial.available()){
+//    if(Serial.peek() == 'l'){
+//      // Print information about the interrupt frequency, duration and load on your program
+//      ShiftPWM.PrintInterruptLoad();
+//    }
+//    else if(Serial.peek() == 'm'){
+//      // Print instructions again
+//      printInstructions();
+//    }
+//    else{
+//      fadingMode = Serial.parseInt(); // read a number from the serial port to set the mode
+//      Serial.print("Mode set to "); 
+//      Serial.print(fadingMode); 
+//      Serial.print(": ");
+//      startTime = millis();
+//      switch(fadingMode){
+//      case 0:
+//        Serial.println("All LED's off");
+//        break;
+//      case 1:
+//        Serial.println("Fade in and out one by one");
+//        break;
+//      case 2:
+//        Serial.println("Fade in and out all LED's");
+//        break;
+//      case 3:
+//        Serial.println("Fade in and out 2 LED's in parallel");
+//        break;
+//      case 4:
+//        Serial.println("Alternating LED's in 6 different colors");
+//        break;
+//      case 5:
+//        Serial.println("Hue shift all LED's");
+//        break;
+//      case 6:
+//        Serial.println("Setting random LED's to random color");
+//        break;
+//      case 7:
+//        Serial.println("Fake a VU meter");
+//        break;
+//      case 8:
+//        Serial.println("Display a color shifting rainbow as wide as the LED's");
+//        break;         
+//      case 9:
+//        Serial.println("Display a color shifting rainbow wider than the LED's");
+//        break;     
+//      default:
+//        Serial.println("Unknown mode!");
+//        break;
+//      }
+//    }
+//    while (Serial.read() >= 0){
+//      ; // flush remaining characters
+//    }
+//  }
+//  switch(fadingMode){
+//  case 0:
+//    // Turn all LED's off.
+//    ShiftPWM.SetAll(0);
+//    break;
+//  case 1:
+//    oneByOne();
+//    break;
+//  case 2:
+//    inOutAll();
+//    break;
+//  case 3:
+//    inOutTwoLeds();
+//    break;
+//  case 4:
+//    alternatingColors();
+//    break;
+//  case 5:
+//    hueShiftAll();
+//    break;
+//  case 6:
+//    randomColors();
+//    break;
+//  case 7:
+//    fakeVuMeter();
+//    break;
+//  case 8:
+//    rgbLedRainbow(3000,numRGBLeds);
+//    break;
+//  case 9:
+//    rgbLedRainbow(10000,5*numRGBLeds);    
+//    break;   
+//  default:
+//    Serial.println("Unknown Mode!");
+//    delay(1000);
+//    break;
+//  }
 }
 
 void oneByOne(void){ // Fade in and fade out all outputs one at a time
@@ -463,3 +474,13 @@ void displayTime()
     break;
   }
 }
+
+void set_light(char const* text, led_state_t state)
+{
+    if(text == "half")
+    {
+        if(state == on) ShiftPWM.SetOne(3, 255);
+        else if(state == off) ShiftPWM.SetOne(3, 0);
+    }
+}
+
