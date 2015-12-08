@@ -22,7 +22,7 @@
 // Convert normal decimal numbers to binary coded decimal
 
 // You can choose the latch pin yourself.
-const int ShiftPWM_latchPin=5;
+const int ShiftPWM_latchPin=4;
 
 // ** uncomment this part to NOT use the SPI port and change the pin numbers. This is 2.5x slower **
 // #define SHIFTPWM_NOSPI
@@ -88,21 +88,14 @@ void setup(){
   // set the initial time here:
   // DS3231 seconds, minutes, hours, day, date, month, year
   //setDS3231time(10,05,21,4,2,12,15);
+  ShiftPWM.SetAll(0);
 }
 
 void loop()
 {    
   displayTime(); // display the real-time clock data on the Serial Monitor,
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-  set_light("it", on);
-  set_light("is", on);
-  set_light("half", on);
-  set_light("past", on);
-  set_light("twelve", on);
-  set_light("oclock", on);
-  set_light("happy (red)", on);
-  set_light("birthday (green)", on);
-  set_light("lexie (blue)", on);
+  parse_time();
+  delay(1000);
   
 //  if(Serial.available()){
 //    if(Serial.peek() == 'l'){
@@ -647,6 +640,618 @@ void set_light(char const* text, led_state_t state)
             ShiftPWM.SetOne(46, 0);
             ShiftPWM.SetOne(47, 0);
         }  
+    }
+}
+
+void parse_time()
+{
+    readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+    ShiftPWM.SetAll(0);
+    set_light("it", on);
+    set_light("is", on);
+    if(minute >=0 && minute <= 2)
+    {
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break; 
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 2 && minute <= 7)
+    {
+        set_light("five", on);
+        set_light("minutes", on);
+        set_light("past", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 7 && minute <= 12)
+    {
+        set_light("ten", on);
+        set_light("minutes", on);
+        set_light("past", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 12 && minute <= 17)
+    {
+        set_light("quarter", on);
+        set_light("past", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break; 
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 17 && minute <= 22)
+    {
+        set_light("twenty", on);
+        set_light("minutes", on);
+        set_light("past", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 22 && minute <= 27)
+    {
+        set_light("twenty", on);
+        set_light("five", on);
+        set_light("minutes", on);
+        set_light("past", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break; 
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 27 && minute <= 32)
+    {
+        set_light("half", on);
+        set_light("past", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("twelve", on);
+              break;
+            case 1:
+              set_light("one", on);
+              break;
+            case 2:
+              set_light("two", on);
+              break;
+            case 3:
+              set_light("three", on);
+              break;
+            case 4:
+              set_light("four", on);
+              break;
+            case 5:
+              set_light("five", on);
+              break;
+            case 6:
+              set_light("six", on);
+              break;
+            case 7:
+              set_light("seven", on);
+              break;
+            case 8:
+              set_light("eight", on);
+              break;
+            case 9:
+              set_light("nine", on);
+              break;
+            case 10:
+              set_light("ten", on);
+              break;
+            case 11:
+              set_light("eleven", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 32 && minute <= 37)
+    {
+        set_light("twenty", on);
+        set_light("five", on);
+        set_light("minutes", on);
+        set_light("to", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("one", on);
+              break;
+            case 1:
+              set_light("two", on);
+              break;
+            case 2:
+              set_light("three", on);
+              break;
+            case 3:
+              set_light("four", on);
+              break;
+            case 4:
+              set_light("five", on);
+              break;
+            case 5:
+              set_light("six", on);
+              break;
+            case 6:
+              set_light("seven", on);
+              break;
+            case 7:
+              set_light("eight", on);
+              break;
+            case 8:
+              set_light("nine", on);
+              break;
+            case 9:
+              set_light("ten", on);
+              break;
+            case 10:
+              set_light("eleven", on);
+              break;
+            case 11:
+              set_light("twelve", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 37 && minute <= 42)
+    {
+        set_light("twenty", on);
+        set_light("minutes", on);
+        set_light("to", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("one", on);
+              break;
+            case 1:
+              set_light("two", on);
+              break;
+            case 2:
+              set_light("three", on);
+              break;
+            case 3:
+              set_light("four", on);
+              break;
+            case 4:
+              set_light("five", on);
+              break;
+            case 5:
+              set_light("six", on);
+              break;
+            case 6:
+              set_light("seven", on);
+              break;
+            case 7:
+              set_light("eight", on);
+              break;
+            case 8:
+              set_light("nine", on);
+              break;
+            case 9:
+              set_light("ten", on);
+              break;
+            case 10:
+              set_light("eleven", on);
+              break;
+            case 11:
+              set_light("twelve", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 42 && minute <= 47)
+    {
+        set_light("quarter", on);
+        set_light("to", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("one", on);
+              break;
+            case 1:
+              set_light("two", on);
+              break;
+            case 2:
+              set_light("three", on);
+              break;
+            case 3:
+              set_light("four", on);
+              break;
+            case 4:
+              set_light("five", on);
+              break;
+            case 5:
+              set_light("six", on);
+              break;
+            case 6:
+              set_light("seven", on);
+              break;
+            case 7:
+              set_light("eight", on);
+              break;
+            case 8:
+              set_light("nine", on);
+              break;
+            case 9:
+              set_light("ten", on);
+              break;
+            case 10:
+              set_light("eleven", on);
+              break;
+            case 11:
+              set_light("twelve", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 47 && minute <= 52)
+    {
+        set_light("ten", on);
+        set_light("minutes", on);
+        set_light("to", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("one", on);
+              break;
+            case 1:
+              set_light("two", on);
+              break;
+            case 2:
+              set_light("three", on);
+              break;
+            case 3:
+              set_light("four", on);
+              break;
+            case 4:
+              set_light("five", on);
+              break;
+            case 5:
+              set_light("six", on);
+              break;
+            case 6:
+              set_light("seven", on);
+              break;
+            case 7:
+              set_light("eight", on);
+              break;
+            case 8:
+              set_light("nine", on);
+              break;
+            case 9:
+              set_light("ten", on);
+              break;
+            case 10:
+              set_light("eleven", on);
+              break;
+            case 11:
+              set_light("twelve", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 52 && minute <= 57)
+    {
+        set_light("five", on);
+        set_light("minutes", on);
+        set_light("to", on);
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("one", on);
+              break;
+            case 1:
+              set_light("two", on);
+              break;
+            case 2:
+              set_light("three", on);
+              break;
+            case 3:
+              set_light("four", on);
+              break;
+            case 4:
+              set_light("five", on);
+              break;
+            case 5:
+              set_light("six", on);
+              break;
+            case 6:
+              set_light("seven", on);
+              break;
+            case 7:
+              set_light("eight", on);
+              break;
+            case 8:
+              set_light("nine", on);
+              break;
+            case 9:
+              set_light("ten", on);
+              break;
+            case 10:
+              set_light("eleven", on);
+              break;
+            case 11:
+              set_light("twelve", on);
+              break;
+        }
+        set_light("oclock", on);
+    }
+    else if(minute > 57)
+    {
+        if(hour >= 12) hour -= 12;
+        switch(hour)
+        {
+            case 0:
+              set_light("one", on);
+              break;
+            case 1:
+              set_light("two", on);
+              break;
+            case 2:
+              set_light("three", on);
+              break;
+            case 3:
+              set_light("four", on);
+              break;
+            case 4:
+              set_light("five", on);
+              break;
+            case 5:
+              set_light("six", on);
+              break;
+            case 6:
+              set_light("seven", on);
+              break;
+            case 7:
+              set_light("eight", on);
+              break;
+            case 8:
+              set_light("nine", on);
+              break;
+            case 9:
+              set_light("ten", on);
+              break;
+            case 10:
+              set_light("eleven", on);
+              break;
+            case 11:
+              set_light("twelve", on);
+              break;
+        }
+        set_light("oclock", on);
     }
 }
 
