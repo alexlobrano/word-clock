@@ -21,6 +21,12 @@
 #define DS3231_I2C_ADDRESS 0x68
 // Convert normal decimal numbers to binary coded decimal
 
+const int upButtonPin = 2;
+const int downButtonPin = 3;
+
+unsigned char red, blue, green;
+
+
 // You can choose the latch pin yourself.
 const int ShiftPWM_latchPin=4;
 
@@ -43,6 +49,22 @@ typedef enum{
   off,
   on
 } led_state_t;
+
+//typedef enum{
+//  was_low_no_add_time,
+//  was_low_add_time,
+//  already_added_time,
+//  waiting
+//} button_state_t;
+
+byte upButtonState = 0;
+byte downButtonState = 0;
+byte was_low_no_add_time = B00000001;
+byte was_low_add_time = B00000010;
+byte already_added_time = B00000100;
+byte waiting = B00001000;
+//button_state_t upButtonState;
+//button_state_t downButtonState;
 
 // Function prototypes (telling the compiler these functions exist).
 void oneByOne(void);
@@ -89,13 +111,79 @@ void setup(){
   // DS3231 seconds, minutes, hours, day, date, month, year
   //setDS3231time(10,05,21,4,2,12,15);
   ShiftPWM.SetAll(0);
+  pinMode(upButtonPin, INPUT);
+  pinMode(downButtonPin, INPUT);
+
+//  attachInterrupt(digitalPinToInterrupt(2), upPress, LOW);
+//  attachInterrupt(digitalPinToInterrupt(3), downPress, CHANGE);
 }
 
 void loop()
 {    
   displayTime(); // display the real-time clock data on the Serial Monitor,
   parse_time();
-  delay(1000);
+  while(digitalRead(upButtonPin) == LOW)
+  {
+    upButtonState |= was_low_add_time;
+    if(digitalRead(downButtonPin) == LOW)
+    {
+      upButtonState |= was_low_no_add_time;
+      ShiftPWM.SetAll(0);
+      while(digitalRead(downButtonPin) == LOW)
+      {
+        //set_light("i", on);
+//        set_light("love (red)", on);
+//        set_light("you (red)", on);
+      set_light("i", on);
+      rgbLedRainbowLoveYou(10000,numRGBLeds);
+
+      }
+    }
+  }
+  if(upButtonState == was_low_add_time)
+    {
+      upButtonState |= already_added_time;
+      readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+      minute += 5;
+      if(minute >= 60) minute -= 60;
+      setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
+      parse_time();
+    }
+
+  while(digitalRead(downButtonPin) == LOW)
+  {
+    downButtonState |= was_low_add_time;
+    if(digitalRead(upButtonPin) == LOW)
+    {
+      downButtonState |= was_low_no_add_time;
+      ShiftPWM.SetAll(0);
+      while(digitalRead(upButtonPin) == LOW)
+      {
+        //set_light("i", on);
+//        set_light("love (red)", on);
+//        set_light("you (red)", on);
+      }
+    }
+  }
+  if(downButtonState == was_low_add_time)
+    {
+      downButtonState |= already_added_time;
+      readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+      if(minute <=4) minute += 60;
+      minute -= 5;
+      setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
+      parse_time();
+    }
+
+    downButtonState = 0;
+    upButtonState = 0;
+
+    if((month == 12) && (dayOfMonth == 8))
+    {
+      rgbLedRainbow(5000, numRGBLeds);
+    }
+    
+    //delay(1000);
   
 //  if(Serial.available()){
 //    if(Serial.peek() == 'l'){
@@ -342,9 +430,63 @@ void rgbLedRainbow(unsigned long cycleTime, int rainbowWidth){
   unsigned long time = millis()-startTime;
   unsigned long colorShift = (360*time/cycleTime)%360; // this color shift is like the hue slider in Photoshop.
 
-  for(unsigned int led=0;led<numRGBLeds;led++){ // loop over all LED's
+  for(unsigned int led=0;led<3;led++){ // loop over all LED's
     int hue = ((led)*360/(rainbowWidth-1)+colorShift)%360; // Set hue from 0 to 360 from first to last led and shift the hue
-    ShiftPWM.SetHSV(led, hue, 255, 255); // write the HSV values, with saturation and value at maximum
+    hsvtorgb(&red, &green, &blue, hue, 255, 255);
+    switch(led){
+      case 0: ShiftPWM.SetOne(12, red); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(13, green); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(14, blue); // write the HSV values, with saturation and value at maximum
+              break;
+      case 1: ShiftPWM.SetOne(17, red); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(18, green); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(19, blue); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(20, red); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(21, green); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(22, blue); // write the HSV values, with saturation and value at maximum
+              break;
+      case 2: ShiftPWM.SetOne(24, red); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(25, green); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(26, blue); // write the HSV values, with saturation and value at maximum
+              break;
+    }
+  }
+}
+
+void rgbLedRainbowLoveYou(unsigned long cycleTime, int rainbowWidth){
+  // Displays a rainbow spread over a few LED's (numRGBLeds), which shifts in hue. 
+  // The rainbow can be wider then the real number of LED's.
+  unsigned long time = millis()-startTime;
+  unsigned long colorShift = (360*time/cycleTime)%360; // this color shift is like the hue slider in Photoshop.
+
+  for(unsigned int led=0;led<2;led++){ // loop over all LED's
+    int hue = ((led)*360/(rainbowWidth-1)+colorShift)%360; // Set hue from 0 to 360 from first to last led and shift the hue
+    hsvtorgb(&red, &green, &blue, hue, 255, 255);
+    switch(led){
+      case 0: ShiftPWM.SetOne(37, red); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(38, green); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(39, blue); // write the HSV values, with saturation and value at maximum
+              break;
+      case 1: ShiftPWM.SetOne(40, red); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(41, green); // write the HSV values, with saturation and value at maximum
+              ShiftPWM.SetOne(42, blue); // write the HSV values, with saturation and value at maximum
+              break;
+////      case 3: ShiftPWM.SetOne(17, hue); // write the HSV values, with saturation and value at maximum
+////              ShiftPWM.SetOne(20, hue); // write the HSV values, with saturation and value at maximum
+////              break;
+////      case 4: ShiftPWM.SetOne(18, hue); // write the HSV values, with saturation and value at maximum
+////              ShiftPWM.SetOne(21, hue); // write the HSV values, with saturation and value at maximum
+////              break;
+////      case 5: ShiftPWM.SetOne(19, hue); // write the HSV values, with saturation and value at maximum
+////              ShiftPWM.SetOne(22, hue); // write the HSV values, with saturation and value at maximum
+////              break;
+////      case 6: ShiftPWM.SetOne(24, hue); // write the HSV values, with saturation and value at maximum
+////              break;
+////      case 7: ShiftPWM.SetOne(25, hue); // write the HSV values, with saturation and value at maximum
+////              break;
+////      case 8: ShiftPWM.SetOne(26, hue); // write the HSV values, with saturation and value at maximum
+////              break;
+    }
   }
 }
 
@@ -1255,3 +1397,64 @@ void parse_time()
     }
 }
 
+void upPress(void)
+{
+//    while(upButtonPin == HIGH)
+//    {
+//      if(downButtonPin == HIGH)
+//      {
+//        ShiftPWM.SetAll(0);
+//        set_light("love (red)", on);
+//        set_light("you (red)", on);
+//        upButtonState = love_you;
+//        while(downButtonPin == HIGH) {}
+//      }
+//    }
+//    if((upButtonPin == LOW) && (upButtonState = add_time))
+//    {
+//      readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+//      minute += 5;
+//      if(minute >= 60) minute -= 60;
+//      setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
+//      parse_time();
+//    }
+}
+
+void hsvtorgb(unsigned char *r, unsigned char *g, unsigned char *b, unsigned char h, unsigned char s, unsigned char v)
+{
+    unsigned char region, fpart, p, q, t;
+    
+    if(s == 0) {
+        /* color is grayscale */
+        *r = *g = *b = v;
+        return;
+    }
+    
+    /* make hue 0-5 */
+    region = h / 43;
+    /* find remainder part, make it from 0-255 */
+    fpart = (h - (region * 43)) * 6;
+    
+    /* calculate temp vars, doing integer multiplication */
+    p = (v * (255 - s)) >> 8;
+    q = (v * (255 - ((s * fpart) >> 8))) >> 8;
+    t = (v * (255 - ((s * (255 - fpart)) >> 8))) >> 8;
+        
+    /* assign temp vars based on color cone region */
+    switch(region) {
+        case 0:
+            *r = v; *g = t; *b = p; break;
+        case 1:
+            *r = q; *g = v; *b = p; break;
+        case 2:
+            *r = p; *g = v; *b = t; break;
+        case 3:
+            *r = p; *g = q; *b = v; break;
+        case 4:
+            *r = t; *g = p; *b = v; break;
+        default:
+            *r = v; *g = p; *b = q; break;
+    }
+    
+    return;
+}
