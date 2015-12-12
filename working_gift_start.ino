@@ -109,7 +109,7 @@ void setup(){
   printInstructions();
   // set the initial time here:
   // DS3231 seconds, minutes, hours, day, date, month, year
-  //setDS3231time(10,05,21,4,2,12,15);
+  //setDS3231time(10,10,8,5,10,12,15);
   ShiftPWM.SetAll(0);
   pinMode(upButtonPin, INPUT);
   pinMode(downButtonPin, INPUT);
@@ -145,7 +145,12 @@ void loop()
       upButtonState |= already_added_time;
       readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
       minute += 5;
-      if(minute >= 60) minute -= 60;
+      if(minute >= 60)
+      {
+        minute -= 60;
+        if(hour == 23) hour = 0;
+        else hour += 1;
+      }
       setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
       parse_time();
     }
@@ -159,9 +164,9 @@ void loop()
       ShiftPWM.SetAll(0);
       while(digitalRead(upButtonPin) == LOW)
       {
-        //set_light("i", on);
-//        set_light("love (red)", on);
-//        set_light("you (red)", on);
+        set_light("i", on);
+        set_light("love (red)", on);
+        set_light("you (red)", on);
       }
     }
   }
@@ -169,7 +174,13 @@ void loop()
     {
       downButtonState |= already_added_time;
       readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-      if(minute <=4) minute += 60;
+      if(minute <=4)
+      {
+        minute += 60;
+        if(hour > 0) hour -= 1;
+        else hour = 23;
+      }
+      
       minute -= 5;
       setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
       parse_time();
@@ -178,10 +189,12 @@ void loop()
     downButtonState = 0;
     upButtonState = 0;
 
-    if((month == 12) && (dayOfMonth == 8))
+    if((month == 12) && (dayOfMonth == 10))
     {
       rgbLedRainbow(5000, numRGBLeds);
     }
+//    delay(1000);
+// code ends here
     
     //delay(1000);
   
@@ -680,7 +693,7 @@ void set_light(char const* text, led_state_t state)
         }
         else if(text == "nine") ShiftPWM.SetOne(33, 255);
         else if(text == "seven") ShiftPWM.SetOne(34, 255);
-        else if(text == "five") ShiftPWM.SetOne(35, 255);
+        else if(text == "five (hour)") ShiftPWM.SetOne(35, 255);
         else if(text == "six") ShiftPWM.SetOne(36, 255);
         else if(text == "love (red)") ShiftPWM.SetOne(37, 255);
         else if(text == "love (green)") ShiftPWM.SetOne(38, 255);
@@ -688,7 +701,7 @@ void set_light(char const* text, led_state_t state)
         else if(text == "you (red)") ShiftPWM.SetOne(40, 255);
         else if(text == "you (green)") ShiftPWM.SetOne(41, 255);
         else if(text == "you (blue)") ShiftPWM.SetOne(42, 255);
-        else if(text == "ten") ShiftPWM.SetOne(43, 255);
+        else if(text == "ten (hour)") ShiftPWM.SetOne(43, 255);
         else if(text == "twelve")
         {
             ShiftPWM.SetOne(44, 255);
@@ -763,7 +776,7 @@ void set_light(char const* text, led_state_t state)
         }
         else if(text == "nine") ShiftPWM.SetOne(33, 0);
         else if(text == "seven") ShiftPWM.SetOne(34, 0);
-        else if(text == "five") ShiftPWM.SetOne(35, 0);
+        else if(text == "five (hour)") ShiftPWM.SetOne(35, 0);
         else if(text == "six") ShiftPWM.SetOne(36, 0);
         else if(text == "love (red)") ShiftPWM.SetOne(37, 0);
         else if(text == "love (green)") ShiftPWM.SetOne(38, 0);
@@ -771,7 +784,7 @@ void set_light(char const* text, led_state_t state)
         else if(text == "you (red)") ShiftPWM.SetOne(40, 0);
         else if(text == "you (green)") ShiftPWM.SetOne(41, 0);
         else if(text == "you (blue)") ShiftPWM.SetOne(42, 0);
-        else if(text == "ten") ShiftPWM.SetOne(43, 0);
+        else if(text == "ten (hour)") ShiftPWM.SetOne(43, 0);
         else if(text == "twelve")
         {
             ShiftPWM.SetOne(44, 0);
@@ -812,7 +825,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -827,7 +840,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -859,7 +872,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -874,7 +887,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -906,7 +919,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -921,7 +934,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -952,7 +965,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -967,7 +980,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -999,7 +1012,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -1014,7 +1027,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -1047,7 +1060,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -1062,7 +1075,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -1093,7 +1106,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 5:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 6:
               set_light("six", on);
@@ -1108,7 +1121,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 10:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 11:
               set_light("eleven", on);
@@ -1138,7 +1151,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 4:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 5:
               set_light("six", on);
@@ -1153,7 +1166,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 9:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 10:
               set_light("eleven", on);
@@ -1185,7 +1198,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 4:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 5:
               set_light("six", on);
@@ -1200,7 +1213,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 9:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 10:
               set_light("eleven", on);
@@ -1231,7 +1244,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 4:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 5:
               set_light("six", on);
@@ -1246,7 +1259,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 9:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 10:
               set_light("eleven", on);
@@ -1278,7 +1291,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 4:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 5:
               set_light("six", on);
@@ -1293,7 +1306,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 9:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 10:
               set_light("eleven", on);
@@ -1325,7 +1338,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 4:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 5:
               set_light("six", on);
@@ -1340,7 +1353,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 9:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 10:
               set_light("eleven", on);
@@ -1369,7 +1382,7 @@ void parse_time()
               set_light("four", on);
               break;
             case 4:
-              set_light("five", on);
+              set_light("five (hour)", on);
               break;
             case 5:
               set_light("six", on);
@@ -1384,7 +1397,7 @@ void parse_time()
               set_light("nine", on);
               break;
             case 9:
-              set_light("ten", on);
+              set_light("ten (hour)", on);
               break;
             case 10:
               set_light("eleven", on);
