@@ -50,21 +50,28 @@ typedef enum{
   on
 } led_state_t;
 
-//typedef enum{
-//  was_low_no_add_time,
-//  was_low_add_time,
-//  already_added_time,
-//  waiting
-//} button_state_t;
+typedef enum{
+  bright,
+  dim
+} light_state_t;
+
+struct lights_t{
+  light_state_t light_state;
+  byte action_needed;
+};
+
+#define was_low_no_add_time       B00000001
+#define was_low_add_time          B00000010
+#define already_added_time        B00000100
+#define already_dimmed_lights     B00001000
 
 byte upButtonState = 0;
 byte downButtonState = 0;
-byte was_low_no_add_time = B00000001;
-byte was_low_add_time = B00000010;
-byte already_added_time = B00000100;
-byte waiting = B00001000;
-//button_state_t upButtonState;
-//button_state_t downButtonState;
+//byte was_low_no_add_time = B00000001;
+//byte was_low_add_time = B00000010;
+//byte already_added_time = B00000100;
+long buttonCompareTime= 0;
+lights_t lights = {bright, 1};
 
 // Function prototypes (telling the compiler these functions exist).
 void oneByOne(void);
@@ -81,6 +88,7 @@ void printInstructions(void);
 // These values affect the load of ShiftPWM.
 // Choose them wisely and use the PrintInterruptLoad() function to verify your load.
 unsigned char maxBrightness = 255;
+unsigned char dimBrightness = maxBrightness/10;
 unsigned char pwmFrequency = 75;
 unsigned int numRegisters = 6;
 unsigned int numOutputs = numRegisters*8;
@@ -97,33 +105,49 @@ void setup(){
   }
   Wire.begin();
   Serial.begin(9600);
-
   // Sets the number of 8-bit registers that are used.
   ShiftPWM.SetAmountOfRegisters(numRegisters);
 
   // SetPinGrouping allows flexibility in LED setup. 
   // If your LED's are connected like this: RRRRGGGGBBBBRRRRGGGGBBBB, use SetPinGrouping(4).
   ShiftPWM.SetPinGrouping(1); //This is the default, but I added here to demonstrate how to use the funtion
-  
+
   ShiftPWM.Start(pwmFrequency,maxBrightness);
   printInstructions();
   // set the initial time here:
   // DS3231 seconds, minutes, hours, day, date, month, year
-  //setDS3231time(10,10,8,5,10,12,15);
+  //setDS3231time(10,18,18,1,13,12,15);
   ShiftPWM.SetAll(0);
   pinMode(upButtonPin, INPUT);
   pinMode(downButtonPin, INPUT);
 
-//  attachInterrupt(digitalPinToInterrupt(2), upPress, LOW);
-//  attachInterrupt(digitalPinToInterrupt(3), downPress, CHANGE);
 }
 
 void loop()
 {    
   displayTime(); // display the real-time clock data on the Serial Monitor,
   parse_time();
+  buttonCompareTime = millis();
   while(digitalRead(upButtonPin) == LOW)
   {
+    if((millis() - buttonCompareTime) >= 3000)
+    {
+      if(lights.action_needed == 1)
+        if(lights.light_state == bright)
+        {
+          lights.light_state = dim;
+          lights.action_needed = 0;
+          upButtonState |= was_low_no_add_time;
+          ShiftPWM.SetAll(0);      
+        }
+        else if(lights.light_state == dim)
+        {
+          lights.light_state = bright;
+          lights.action_needed = 0;
+          upButtonState |= was_low_no_add_time;
+          ShiftPWM.SetAll(0); 
+        }
+    }
     upButtonState |= was_low_add_time;
     if(digitalRead(downButtonPin) == LOW)
     {
@@ -131,12 +155,8 @@ void loop()
       ShiftPWM.SetAll(0);
       while(digitalRead(downButtonPin) == LOW)
       {
-        //set_light("i", on);
-//        set_light("love (red)", on);
-//        set_light("you (red)", on);
-      set_light("i", on);
-      rgbLedRainbowLoveYou(10000,numRGBLeds);
-
+        set_light("i", on);
+        rgbLedRainbowLoveYou(10000,numRGBLeds);
       }
     }
   }
@@ -148,7 +168,13 @@ void loop()
       if(minute >= 60)
       {
         minute -= 60;
-        if(hour == 23) hour = 0;
+        if(hour == 23) 
+        {
+          hour = 0;
+          dayOfMonth += 1;
+          if(dayOfWeek == 7) dayOfWeek = 1;
+          else dayOfWeek += 1;
+        }
         else hour += 1;
       }
       setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
@@ -177,8 +203,14 @@ void loop()
       if(minute <=4)
       {
         minute += 60;
-        if(hour > 0) hour -= 1;
-        else hour = 23;
+        if(hour == 0)
+        {
+          hour = 23;
+          dayOfMonth -= 1;
+          if(dayOfWeek == 1) dayOfWeek = 7;
+          else dayOfWeek -= 1;
+        }
+        else hour -= 1;
       }
       
       minute -= 5;
@@ -188,6 +220,7 @@ void loop()
 
     downButtonState = 0;
     upButtonState = 0;
+    lights.action_needed = 1;
 
     if((month == 12) && (dayOfMonth == 10))
     {
@@ -349,22 +382,22 @@ void alternatingColors(void){ // Alternate LED's in 6 different colors
   for(unsigned int led=0; led<numRGBLeds; led++){
     switch((led+shift)%6){
     case 0:
-      ShiftPWM.SetRGB(led,255,0,0);    // red
+      ShiftPWM.SetRGB(led,maxBrightness,0,0);    // red
       break;
     case 1:
-      ShiftPWM.SetRGB(led,0,255,0);    // green
+      ShiftPWM.SetRGB(led,0,maxBrightness,0);    // green
       break;
     case 2:
-      ShiftPWM.SetRGB(led,0,0,255);    // blue
+      ShiftPWM.SetRGB(led,0,0,maxBrightness);    // blue
       break;
     case 3:
-      ShiftPWM.SetRGB(led,255,128,0);  // orange
+      ShiftPWM.SetRGB(led,maxBrightness,128,0);  // orange
       break;
     case 4:
-      ShiftPWM.SetRGB(led,0,255,255);  // turqoise
+      ShiftPWM.SetRGB(led,0,maxBrightness,maxBrightness);  // turqoise
       break;
     case 5:
-      ShiftPWM.SetRGB(led,255,0,255);  // purple
+      ShiftPWM.SetRGB(led,maxBrightness,0,maxBrightness);  // purple
       break;
     }
   }
@@ -374,7 +407,7 @@ void hueShiftAll(void){  // Hue shift all LED's
   unsigned long cycleTime = 10000;
   unsigned long time = millis()-startTime;
   unsigned long hue = (360*time/cycleTime)%360;
-  ShiftPWM.SetAllHSV(hue, 255, 255); 
+  ShiftPWM.SetAllHSV(hue, maxBrightness, maxBrightness); 
 }
 
 void randomColors(void){  // Update random LED to random color. Funky!
@@ -382,7 +415,7 @@ void randomColors(void){  // Update random LED to random color. Funky!
   static unsigned long previousUpdateTime;
   if(millis()-previousUpdateTime > updateDelay){
     previousUpdateTime = millis();
-    ShiftPWM.SetHSV(random(numRGBLeds),random(360),255,255);
+    ShiftPWM.SetHSV(random(numRGBLeds),random(360),maxBrightness,maxBrightness);
   }
 }
 
@@ -418,18 +451,18 @@ void fakeVuMeter(void){ // imitate a VU meter
   for(unsigned int led=0;led<numRGBLeds;led++){
     if(led<currentLevel){
       int hue = (numRGBLeds-1-led)*120/numRGBLeds; // From green to red
-      ShiftPWM.SetHSV(led,hue,255,255); 
+      ShiftPWM.SetHSV(led,hue,maxBrightness,maxBrightness); 
     }
     else if(led==currentLevel){
       int hue = (numRGBLeds-1-led)*120/numRGBLeds; // From green to red
       int value;
       if(currentLevel<peak){ //fading in        
-        value = time*255/fadeTime;
+        value = time*maxBrightness/fadeTime;
       }
       else{ //fading out
-        value = 255-time*255/fadeTime;
+        value = maxBrightness-time*maxBrightness/fadeTime;
       }
-      ShiftPWM.SetHSV(led,hue,255,value);       
+      ShiftPWM.SetHSV(led,hue,maxBrightness,value);       
     }
     else{
       ShiftPWM.SetRGB(led,0,0,0);
@@ -445,7 +478,7 @@ void rgbLedRainbow(unsigned long cycleTime, int rainbowWidth){
 
   for(unsigned int led=0;led<3;led++){ // loop over all LED's
     int hue = ((led)*360/(rainbowWidth-1)+colorShift)%360; // Set hue from 0 to 360 from first to last led and shift the hue
-    hsvtorgb(&red, &green, &blue, hue, 255, 255);
+    hsvtorgb(&red, &green, &blue, hue, maxBrightness, maxBrightness);
     switch(led){
       case 0: ShiftPWM.SetOne(12, red); // write the HSV values, with saturation and value at maximum
               ShiftPWM.SetOne(13, green); // write the HSV values, with saturation and value at maximum
@@ -474,7 +507,7 @@ void rgbLedRainbowLoveYou(unsigned long cycleTime, int rainbowWidth){
 
   for(unsigned int led=0;led<2;led++){ // loop over all LED's
     int hue = ((led)*360/(rainbowWidth-1)+colorShift)%360; // Set hue from 0 to 360 from first to last led and shift the hue
-    hsvtorgb(&red, &green, &blue, hue, 255, 255);
+    hsvtorgb(&red, &green, &blue, hue, maxBrightness, maxBrightness);
     switch(led){
       case 0: ShiftPWM.SetOne(37, red); // write the HSV values, with saturation and value at maximum
               ShiftPWM.SetOne(38, green); // write the HSV values, with saturation and value at maximum
@@ -632,86 +665,172 @@ void set_light(char const* text, led_state_t state)
 {
     if(state == on)
     {
-        if(text == "i") ShiftPWM.SetOne(0, 255);
-        else if(text == "t") ShiftPWM.SetOne(1, 255);
+      if(lights.light_state == bright)
+      {
+        if(text == "i") ShiftPWM.SetOne(0, maxBrightness);
+        else if(text == "t") ShiftPWM.SetOne(1, maxBrightness);
         else if(text == "it")
         {
-            ShiftPWM.SetOne(0, 255);
-            ShiftPWM.SetOne(1, 255);      
+            ShiftPWM.SetOne(0, maxBrightness);
+            ShiftPWM.SetOne(1, maxBrightness);      
         }
-        else if(text == "is") ShiftPWM.SetOne(2, 255);
-        else if(text == "ten") ShiftPWM.SetOne(3, 255);
-        else if(text == "half") ShiftPWM.SetOne(4, 255);
+        else if(text == "is") ShiftPWM.SetOne(2, maxBrightness);
+        else if(text == "ten") ShiftPWM.SetOne(3, maxBrightness);
+        else if(text == "half") ShiftPWM.SetOne(4, maxBrightness);
         else if(text == "quarter") 
         {
-            ShiftPWM.SetOne(5, 255);
-            ShiftPWM.SetOne(6, 255);
+            ShiftPWM.SetOne(5, maxBrightness);
+            ShiftPWM.SetOne(6, maxBrightness);
         }
         else if(text == "twenty")
         {
-            ShiftPWM.SetOne(7, 255);
-            ShiftPWM.SetOne(8, 255);
+            ShiftPWM.SetOne(7, maxBrightness);
+            ShiftPWM.SetOne(8, maxBrightness);
         }
-        else if(text == "five") ShiftPWM.SetOne(9, 255);
+        else if(text == "five") ShiftPWM.SetOne(9, maxBrightness);
         else if(text == "minutes")
         {
-            ShiftPWM.SetOne(10, 255);
-            ShiftPWM.SetOne(11, 255);
+            ShiftPWM.SetOne(10, maxBrightness);
+            ShiftPWM.SetOne(11, maxBrightness);
         }
-        else if(text == "happy (red)") ShiftPWM.SetOne(12, 255);
-        else if(text == "happy (green)") ShiftPWM.SetOne(13, 255);
-        else if(text == "happy (blue)") ShiftPWM.SetOne(14, 255);
-        else if(text == "past") ShiftPWM.SetOne(15, 255);
-        else if(text == "to") ShiftPWM.SetOne(16, 255);
+        else if(text == "happy (red)") ShiftPWM.SetOne(12, maxBrightness);
+        else if(text == "happy (green)") ShiftPWM.SetOne(13, maxBrightness);
+        else if(text == "happy (blue)") ShiftPWM.SetOne(14, maxBrightness);
+        else if(text == "past") ShiftPWM.SetOne(15, maxBrightness);
+        else if(text == "to") ShiftPWM.SetOne(16, maxBrightness);
         else if(text == "birthday (red)")
         {
-            ShiftPWM.SetOne(17, 255);
-            ShiftPWM.SetOne(20, 255);
+            ShiftPWM.SetOne(17, maxBrightness);
+            ShiftPWM.SetOne(20, maxBrightness);
         }
         else if(text == "birthday (green)") 
         {
-            ShiftPWM.SetOne(18, 255);
-            ShiftPWM.SetOne(21, 255);
+            ShiftPWM.SetOne(18, maxBrightness);
+            ShiftPWM.SetOne(21, maxBrightness);
         }
         else if(text == "birthday (blue)")
         {
-            ShiftPWM.SetOne(19, 255);
-            ShiftPWM.SetOne(22, 255);
+            ShiftPWM.SetOne(19, maxBrightness);
+            ShiftPWM.SetOne(22, maxBrightness);
         }
-        else if(text == "three") ShiftPWM.SetOne(23, 255);
-        else if(text == "lexie (red)") ShiftPWM.SetOne(24, 255);
-        else if(text == "lexie (green)") ShiftPWM.SetOne(25, 255);
-        else if(text == "lexie (blue)") ShiftPWM.SetOne(26, 255);
-        else if(text == "eight") ShiftPWM.SetOne(27, 255);
-        else if(text == "one") ShiftPWM.SetOne(28, 255);
-        else if(text == "two") ShiftPWM.SetOne(29, 255);
-        else if(text == "four") ShiftPWM.SetOne(30, 255);
+        else if(text == "three") ShiftPWM.SetOne(23, maxBrightness);
+        else if(text == "lexie (red)") ShiftPWM.SetOne(24, maxBrightness);
+        else if(text == "lexie (green)") ShiftPWM.SetOne(25, maxBrightness);
+        else if(text == "lexie (blue)") ShiftPWM.SetOne(26, maxBrightness);
+        else if(text == "eight") ShiftPWM.SetOne(27, maxBrightness);
+        else if(text == "one") ShiftPWM.SetOne(28, maxBrightness);
+        else if(text == "two") ShiftPWM.SetOne(29, maxBrightness);
+        else if(text == "four") ShiftPWM.SetOne(30, maxBrightness);
         else if(text == "eleven")
         {
-            ShiftPWM.SetOne(31, 255);
-            ShiftPWM.SetOne(32, 255);
+            ShiftPWM.SetOne(31, maxBrightness);
+            ShiftPWM.SetOne(32, maxBrightness);
         }
-        else if(text == "nine") ShiftPWM.SetOne(33, 255);
-        else if(text == "seven") ShiftPWM.SetOne(34, 255);
-        else if(text == "five (hour)") ShiftPWM.SetOne(35, 255);
-        else if(text == "six") ShiftPWM.SetOne(36, 255);
-        else if(text == "love (red)") ShiftPWM.SetOne(37, 255);
-        else if(text == "love (green)") ShiftPWM.SetOne(38, 255);
-        else if(text == "love (blue)") ShiftPWM.SetOne(39, 255);
-        else if(text == "you (red)") ShiftPWM.SetOne(40, 255);
-        else if(text == "you (green)") ShiftPWM.SetOne(41, 255);
-        else if(text == "you (blue)") ShiftPWM.SetOne(42, 255);
-        else if(text == "ten (hour)") ShiftPWM.SetOne(43, 255);
+        else if(text == "nine") ShiftPWM.SetOne(33, maxBrightness);
+        else if(text == "seven") ShiftPWM.SetOne(34, maxBrightness);
+        else if(text == "five (hour)") ShiftPWM.SetOne(35, maxBrightness);
+        else if(text == "six") ShiftPWM.SetOne(36, maxBrightness);
+        else if(text == "love (red)") ShiftPWM.SetOne(37, maxBrightness);
+        else if(text == "love (green)") ShiftPWM.SetOne(38, maxBrightness);
+        else if(text == "love (blue)") ShiftPWM.SetOne(39, maxBrightness);
+        else if(text == "you (red)") ShiftPWM.SetOne(40, maxBrightness);
+        else if(text == "you (green)") ShiftPWM.SetOne(41, maxBrightness);
+        else if(text == "you (blue)") ShiftPWM.SetOne(42, maxBrightness);
+        else if(text == "ten (hour)") ShiftPWM.SetOne(43, maxBrightness);
         else if(text == "twelve")
         {
-            ShiftPWM.SetOne(44, 255);
-            ShiftPWM.SetOne(45, 255);
+            ShiftPWM.SetOne(44, maxBrightness);
+            ShiftPWM.SetOne(45, maxBrightness);
         }
         else if(text == "oclock") 
         {
-            ShiftPWM.SetOne(46, 255);
-            ShiftPWM.SetOne(47, 255);
-        }  
+            ShiftPWM.SetOne(46, maxBrightness);
+            ShiftPWM.SetOne(47, maxBrightness);
+        } 
+      } 
+      else if(lights.light_state == dim)
+      {
+        if(text == "i") ShiftPWM.SetOne(0, dimBrightness);
+        else if(text == "t") ShiftPWM.SetOne(1, dimBrightness);
+        else if(text == "it")
+        {
+            ShiftPWM.SetOne(0, dimBrightness);
+            ShiftPWM.SetOne(1, dimBrightness);      
+        }
+        else if(text == "is") ShiftPWM.SetOne(2, dimBrightness);
+        else if(text == "ten") ShiftPWM.SetOne(3, dimBrightness);
+        else if(text == "half") ShiftPWM.SetOne(4, dimBrightness);
+        else if(text == "quarter") 
+        {
+            ShiftPWM.SetOne(5, dimBrightness);
+            ShiftPWM.SetOne(6, dimBrightness);
+        }
+        else if(text == "twenty")
+        {
+            ShiftPWM.SetOne(7, dimBrightness);
+            ShiftPWM.SetOne(8, dimBrightness);
+        }
+        else if(text == "five") ShiftPWM.SetOne(9, dimBrightness);
+        else if(text == "minutes")
+        {
+            ShiftPWM.SetOne(10, dimBrightness);
+            ShiftPWM.SetOne(11, dimBrightness);
+        }
+        else if(text == "happy (red)") ShiftPWM.SetOne(12, dimBrightness);
+        else if(text == "happy (green)") ShiftPWM.SetOne(13, dimBrightness);
+        else if(text == "happy (blue)") ShiftPWM.SetOne(14, dimBrightness);
+        else if(text == "past") ShiftPWM.SetOne(15, dimBrightness);
+        else if(text == "to") ShiftPWM.SetOne(16, dimBrightness);
+        else if(text == "birthday (red)")
+        {
+            ShiftPWM.SetOne(17, dimBrightness);
+            ShiftPWM.SetOne(20, dimBrightness);
+        }
+        else if(text == "birthday (green)") 
+        {
+            ShiftPWM.SetOne(18, dimBrightness);
+            ShiftPWM.SetOne(21, dimBrightness);
+        }
+        else if(text == "birthday (blue)")
+        {
+            ShiftPWM.SetOne(19, dimBrightness);
+            ShiftPWM.SetOne(22, dimBrightness);
+        }
+        else if(text == "three") ShiftPWM.SetOne(23, dimBrightness);
+        else if(text == "lexie (red)") ShiftPWM.SetOne(24, dimBrightness);
+        else if(text == "lexie (green)") ShiftPWM.SetOne(25, dimBrightness);
+        else if(text == "lexie (blue)") ShiftPWM.SetOne(26, dimBrightness);
+        else if(text == "eight") ShiftPWM.SetOne(27, dimBrightness);
+        else if(text == "one") ShiftPWM.SetOne(28, dimBrightness);
+        else if(text == "two") ShiftPWM.SetOne(29, dimBrightness);
+        else if(text == "four") ShiftPWM.SetOne(30, dimBrightness);
+        else if(text == "eleven")
+        {
+            ShiftPWM.SetOne(31, dimBrightness);
+            ShiftPWM.SetOne(32, dimBrightness);
+        }
+        else if(text == "nine") ShiftPWM.SetOne(33, dimBrightness);
+        else if(text == "seven") ShiftPWM.SetOne(34, dimBrightness);
+        else if(text == "five (hour)") ShiftPWM.SetOne(35, dimBrightness);
+        else if(text == "six") ShiftPWM.SetOne(36, dimBrightness);
+        else if(text == "love (red)") ShiftPWM.SetOne(37, dimBrightness);
+        else if(text == "love (green)") ShiftPWM.SetOne(38, dimBrightness);
+        else if(text == "love (blue)") ShiftPWM.SetOne(39, dimBrightness);
+        else if(text == "you (red)") ShiftPWM.SetOne(40, dimBrightness);
+        else if(text == "you (green)") ShiftPWM.SetOne(41, dimBrightness);
+        else if(text == "you (blue)") ShiftPWM.SetOne(42, dimBrightness);
+        else if(text == "ten (hour)") ShiftPWM.SetOne(43, dimBrightness);
+        else if(text == "twelve")
+        {
+            ShiftPWM.SetOne(44, dimBrightness);
+            ShiftPWM.SetOne(45, dimBrightness);
+        }
+        else if(text == "oclock") 
+        {
+            ShiftPWM.SetOne(46, dimBrightness);
+            ShiftPWM.SetOne(47, dimBrightness);
+        } 
+      } 
     }
     else if(state == off)
     {
