@@ -60,6 +60,22 @@ struct lights_t{
   byte action_needed;
 };
 
+typedef enum{
+  oclock,
+  five_past,
+  ten_past,
+  quarter_past,
+  twenty_past,
+  twenty_five_past,
+  half_past,
+  twenty_five_to,
+  twenty_to,
+  quarter_to,
+  ten_to,
+  five_to,
+  manual_update
+} time_update_t;
+
 #define was_low_no_add_time       B00000001
 #define was_low_add_time          B00000010
 #define already_added_time        B00000100
@@ -72,6 +88,7 @@ byte downButtonState = 0;
 //byte already_added_time = B00000100;
 long buttonCompareTime= 0;
 lights_t lights = {bright, 1};
+time_update_t time_update = oclock; 
 
 // Function prototypes (telling the compiler these functions exist).
 void oneByOne(void);
@@ -147,6 +164,7 @@ void loop()
           upButtonState |= was_low_no_add_time;
           ShiftPWM.SetAll(0); 
         }
+        time_update = manual_update;
     }
     upButtonState |= was_low_add_time;
     if(digitalRead(downButtonPin) == LOW)
@@ -155,9 +173,21 @@ void loop()
       ShiftPWM.SetAll(0);
       while(digitalRead(downButtonPin) == LOW)
       {
-        set_light("i", on);
-        rgbLedRainbowLoveYou(10000,numRGBLeds);
+        if(digitalRead(upButtonPin) == LOW)
+        {
+          ShiftPWM.SetAll(0);
+          set_light("i", on);
+          rgbLedRainbowLoveYou(10000,numRGBLeds);
+        }
+        else
+        {
+          time_update = manual_update;
+          parse_time();
+        }
       }
+      buttonCompareTime = millis();
+      time_update = manual_update;
+      parse_time();
     }
   }
   if(upButtonState == was_low_add_time)
@@ -190,10 +220,21 @@ void loop()
       ShiftPWM.SetAll(0);
       while(digitalRead(upButtonPin) == LOW)
       {
-        set_light("i", on);
-        set_light("love (red)", on);
-        set_light("you (red)", on);
+        if(digitalRead(downButtonPin) == LOW)
+        {
+          ShiftPWM.SetAll(0);
+          set_light("i", on);
+          set_light("love (red)", on);
+          set_light("you (red)", on);
+        }
+        else
+        {
+          time_update = manual_update;
+          parse_time();
+        }
       }
+      time_update = manual_update;
+      parse_time();
     }
   }
   if(downButtonState == was_low_add_time)
@@ -920,11 +961,15 @@ void set_light(char const* text, led_state_t state)
 void parse_time()
 {
     readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-    ShiftPWM.SetAll(0);
-    set_light("it", on);
-    set_light("is", on);
     if(minute >=0 && minute <= 2)
     {
+      if(time_update == oclock){}
+      else
+      {
+        time_update = oclock;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         if(hour >= 12) hour -= 12;
         switch(hour)
         {
@@ -966,9 +1011,17 @@ void parse_time()
               break; 
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 2 && minute <= 7)
     {
+      if(time_update == five_past){}
+      else
+      {
+        time_update = five_past;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("five", on);
         set_light("minutes", on);
         set_light("past", on);
@@ -1013,9 +1066,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 7 && minute <= 12)
     {
+      if(time_update == ten_past){}
+      else
+      {
+        time_update = ten_past;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("ten", on);
         set_light("minutes", on);
         set_light("past", on);
@@ -1060,9 +1121,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 12 && minute <= 17)
     {
+      if(time_update == quarter_past){}
+      else
+      {
+        time_update = quarter_past;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("quarter", on);
         set_light("past", on);
         if(hour >= 12) hour -= 12;
@@ -1106,9 +1175,17 @@ void parse_time()
               break; 
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 17 && minute <= 22)
     {
+      if(time_update == twenty_past){}
+      else
+      {
+        time_update = twenty_past;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("twenty", on);
         set_light("minutes", on);
         set_light("past", on);
@@ -1153,9 +1230,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 22 && minute <= 27)
     {
+      if(time_update == twenty_five_past){}
+      else
+      {
+        time_update = twenty_five_past;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("twenty", on);
         set_light("five", on);
         set_light("minutes", on);
@@ -1201,9 +1286,17 @@ void parse_time()
               break; 
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 27 && minute <= 32)
     {
+      if(time_update == half_past){}
+      else
+      {
+        time_update = half_past;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("half", on);
         set_light("past", on);
         if(hour >= 12) hour -= 12;
@@ -1247,9 +1340,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 32 && minute <= 37)
     {
+      if(time_update == twenty_five_to){}
+      else
+      {
+        time_update = twenty_five_to;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("twenty", on);
         set_light("five", on);
         set_light("minutes", on);
@@ -1295,9 +1396,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 37 && minute <= 42)
     {
+      if(time_update == twenty_to){}
+      else
+      {
+        time_update = twenty_to;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("twenty", on);
         set_light("minutes", on);
         set_light("to", on);
@@ -1342,9 +1451,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 42 && minute <= 47)
     {
+      if(time_update == quarter_to){}
+      else
+      {
+        time_update = quarter_to;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("quarter", on);
         set_light("to", on);
         if(hour >= 12) hour -= 12;
@@ -1388,9 +1505,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 47 && minute <= 52)
     {
+      if(time_update == ten_to){}
+      else
+      {
+        time_update = ten_to;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("ten", on);
         set_light("minutes", on);
         set_light("to", on);
@@ -1435,9 +1560,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 52 && minute <= 57)
     {
+      if(time_update == five_to){}
+      else
+      {
+        time_update = five_to;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         set_light("five", on);
         set_light("minutes", on);
         set_light("to", on);
@@ -1482,9 +1615,17 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
     else if(minute > 57)
     {
+      if(time_update == oclock){}
+      else
+      {
+        time_update = oclock;
+        ShiftPWM.SetAll(0);
+        set_light("it", on);
+        set_light("is", on);
         if(hour >= 12) hour -= 12;
         switch(hour)
         {
@@ -1526,6 +1667,7 @@ void parse_time()
               break;
         }
         set_light("oclock", on);
+      }
     }
 }
 
