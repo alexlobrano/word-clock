@@ -105,7 +105,7 @@ void printInstructions(void);
 // These values affect the load of ShiftPWM.
 // Choose them wisely and use the PrintInterruptLoad() function to verify your load.
 unsigned char maxBrightness = 255;
-unsigned char dimBrightness = maxBrightness/10;
+unsigned char dimBrightness = 5;
 unsigned char pwmFrequency = 75;
 unsigned int numRegisters = 6;
 unsigned int numOutputs = numRegisters*8;
