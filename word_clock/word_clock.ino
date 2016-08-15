@@ -133,7 +133,7 @@ void setup(){
   printInstructions();
   // set the initial time here:
   // DS3231 seconds, minutes, hours, day, date, month, year
-  //setDS3231time(10,18,18,1,13,12,15);
+  //setDS3231time(20,47,15,2,15,8,16);
   ShiftPWM.SetAll(0);
   pinMode(upButtonPin, INPUT);
   pinMode(downButtonPin, INPUT);
@@ -266,6 +266,18 @@ void loop()
     if((month == 12) && (dayOfMonth == 10))
     {
       rgbLedRainbow(5000, numRGBLeds);
+    }
+
+    if(((hour == 8) && (minute == 0)) && lights.light_state != bright)
+    {
+      time_update = manual_update;
+      lights.light_state = bright;
+    }
+
+    if(((hour == 20) && (minute == 0)) && lights.light_state != dim)
+    {
+      time_update = manual_update;
+      lights.light_state = dim;
     }
 //    delay(1000);
 // code ends here
@@ -1669,29 +1681,6 @@ void parse_time()
         set_light("oclock", on);
       }
     }
-}
-
-void upPress(void)
-{
-//    while(upButtonPin == HIGH)
-//    {
-//      if(downButtonPin == HIGH)
-//      {
-//        ShiftPWM.SetAll(0);
-//        set_light("love (red)", on);
-//        set_light("you (red)", on);
-//        upButtonState = love_you;
-//        while(downButtonPin == HIGH) {}
-//      }
-//    }
-//    if((upButtonPin == LOW) && (upButtonState = add_time))
-//    {
-//      readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-//      minute += 5;
-//      if(minute >= 60) minute -= 60;
-//      setDS3231time(second, minute, hour, dayOfWeek, dayOfMonth, month, year);
-//      parse_time();
-//    }
 }
 
 void hsvtorgb(unsigned char *r, unsigned char *g, unsigned char *b, unsigned char h, unsigned char s, unsigned char v)
