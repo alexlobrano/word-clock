@@ -1,49 +1,16 @@
-/*
- * ShiftPWM non-blocking RGB fades example, (c) Elco Jacobs, updated August 2012.
- *
- * This example for ShiftPWM shows how to control your LED's in a non-blocking way: no delay loops.
- * This example receives a number from the serial port to set the fading mode. Instead you can also read buttons or sensors.
- * It uses the millis() function to create fades. The block fades example might be easier to understand, so start there.
- *
- * Please go to www.elcojacobs.com/shiftpwm for documentation, fuction reference and schematics.
- * If you want to use ShiftPWM with LED strips or high power LED's, visit the shop for boards.
- */
-
-// ShiftPWM uses timer1 by default. To use a different timer, before '#include <ShiftPWM.h>', add
-// #define SHIFTPWM_USE_TIMER2  // for Arduino Uno and earlier (Atmega328)
-// #define SHIFTPWM_USE_TIMER3  // for Arduino Micro/Leonardo (Atmega32u4)
-
-// Clock and data pins are pins from the hardware SPI, you cannot choose them yourself.
-// Data pin is MOSI (Uno and earlier: 11, Leonardo: ICSP 4, Mega: 51, Teensy 2.0: 2, Teensy 2.0++: 22) 
-// Clock pin is SCK (Uno and earlier: 13, Leonardo: ICSP 3, Mega: 52, Teensy 2.0: 1, Teensy 2.0++: 21)
-
 #include "Wire.h"
 #define DS3231_I2C_ADDRESS 0x68
-// Convert normal decimal numbers to binary coded decimal
 
 const int upButtonPin = 2;
 const int downButtonPin = 3;
 
 unsigned char red, blue, green;
 
-
-// You can choose the latch pin yourself.
 const int ShiftPWM_latchPin=4;
-
-// ** uncomment this part to NOT use the SPI port and change the pin numbers. This is 2.5x slower **
-// #define SHIFTPWM_NOSPI
-// const int ShiftPWM_dataPin = 6;
-// const int ShiftPWM_clockPin = 4;
-
-// If your LED's turn on if the pin is low, set this to true, otherwise set it to false.
 const bool ShiftPWM_invertOutputs = false;
-
-// You can enable the option below to shift the PWM phase of each shift register by 8 compared to the previous.
-// This will slightly increase the interrupt load, but will prevent all PWM signals from becoming high at the same time.
-// This will be a bit easier on your power supply, because the current peaks are distributed.
 const bool ShiftPWM_balanceLoad = false;
 
-#include <ShiftPWM.h>   // include ShiftPWM.h after setting the pins!
+#include <ShiftPWM.h>
 
 typedef enum{
   off,
@@ -83,38 +50,23 @@ typedef enum{
 
 byte upButtonState = 0;
 byte downButtonState = 0;
-//byte was_low_no_add_time = B00000001;
-//byte was_low_add_time = B00000010;
-//byte already_added_time = B00000100;
 long buttonCompareTime= 0;
 lights_t lights = {bright, 1};
-time_update_t time_update = oclock; 
+time_update_t time_update = manual_update; 
 
-// Function prototypes (telling the compiler these functions exist).
-void oneByOne(void);
-void inOutTwoLeds(void);
-void inOutAll(void);
-void alternatingColors(void);
-void hueShiftAll(void);
-void randomColors(void);
-void fakeVuMeter(void);
 void rgbLedRainbow(unsigned long cycleTime, int rainbowWidth);
-void printInstructions(void);
+void rgbLedRainbowLoveYou(unsigned long cycleTime, int rainbowWidth);
 
-// Here you set the number of brightness levels, the update frequency and the number of shift registers.
-// These values affect the load of ShiftPWM.
-// Choose them wisely and use the PrintInterruptLoad() function to verify your load.
 unsigned char maxBrightness = 255;
 unsigned char dimBrightness = 5;
 unsigned char pwmFrequency = 75;
 unsigned int numRegisters = 6;
 unsigned int numOutputs = numRegisters*8;
 unsigned int numRGBLeds = numRegisters*8/3;
-unsigned int fadingMode = 0; //start with all LED's off.
+unsigned int fadingMode = 0; 
+unsigned long startTime = 0; 
 
-unsigned long startTime = 0; // start time for the chosen fading mode
-
-byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+byte second, lastSecond, minute, hour, tempHour, dayOfWeek, dayOfMonth, month, year;
 
 void setup(){
   while(!Serial){
@@ -122,27 +74,34 @@ void setup(){
   }
   Wire.begin();
   Serial.begin(9600);
-  // Sets the number of 8-bit registers that are used.
-  ShiftPWM.SetAmountOfRegisters(numRegisters);
 
-  // SetPinGrouping allows flexibility in LED setup. 
-  // If your LED's are connected like this: RRRRGGGGBBBBRRRRGGGGBBBB, use SetPinGrouping(4).
-  ShiftPWM.SetPinGrouping(1); //This is the default, but I added here to demonstrate how to use the funtion
-
-  ShiftPWM.Start(pwmFrequency,maxBrightness);
-  printInstructions();
-  // set the initial time here:
-  // DS3231 seconds, minutes, hours, day, date, month, year
-  //setDS3231time(20,47,15,2,15,8,16);
-  ShiftPWM.SetAll(0);
   pinMode(upButtonPin, INPUT);
   pinMode(downButtonPin, INPUT);
+  
+  ShiftPWM.SetAmountOfRegisters(numRegisters);
+  ShiftPWM.SetPinGrouping(1); 
+  ShiftPWM.Start(pwmFrequency,maxBrightness);
+  ShiftPWM.SetAll(0);
+  
+  // DS3231 seconds, minutes, hours, day, date, month, year
+  setDS3231time(30,59,7,2,15,8,16);
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+  lastSecond = second;
+  if((hour >=8) && (hour <= 20))
+  {
+    lights.light_state = bright;
+  }
+  else lights.light_state = dim;
 
 }
 
 void loop()
 {    
-  displayTime(); // display the real-time clock data on the Serial Monitor,
+  if(lastSecond != second)
+  {
+    displayTime();
+    lastSecond = second;
+  }
   parse_time();
   buttonCompareTime = millis();
   while(digitalRead(upButtonPin) == LOW)
@@ -268,259 +227,19 @@ void loop()
       rgbLedRainbow(5000, numRGBLeds);
     }
 
-    if(((hour == 8) && (minute == 0)) && lights.light_state != bright)
+    if((hour == 8) && (minute == 0) && (lights.light_state != bright))
     {
+      Serial.println("flag1");
       time_update = manual_update;
       lights.light_state = bright;
     }
 
-    if(((hour == 20) && (minute == 0)) && lights.light_state != dim)
+    if((hour == 20) && (minute == 0) && lights.light_state != dim)
     {
+      Serial.println("flag2");
       time_update = manual_update;
       lights.light_state = dim;
     }
-//    delay(1000);
-// code ends here
-    
-    //delay(1000);
-  
-//  if(Serial.available()){
-//    if(Serial.peek() == 'l'){
-//      // Print information about the interrupt frequency, duration and load on your program
-//      ShiftPWM.PrintInterruptLoad();
-//    }
-//    else if(Serial.peek() == 'm'){
-//      // Print instructions again
-//      printInstructions();
-//    }
-//    else{
-//      fadingMode = Serial.parseInt(); // read a number from the serial port to set the mode
-//      Serial.print("Mode set to "); 
-//      Serial.print(fadingMode); 
-//      Serial.print(": ");
-//      startTime = millis();
-//      switch(fadingMode){
-//      case 0:
-//        Serial.println("All LED's off");
-//        break;
-//      case 1:
-//        Serial.println("Fade in and out one by one");
-//        break;
-//      case 2:
-//        Serial.println("Fade in and out all LED's");
-//        break;
-//      case 3:
-//        Serial.println("Fade in and out 2 LED's in parallel");
-//        break;
-//      case 4:
-//        Serial.println("Alternating LED's in 6 different colors");
-//        break;
-//      case 5:
-//        Serial.println("Hue shift all LED's");
-//        break;
-//      case 6:
-//        Serial.println("Setting random LED's to random color");
-//        break;
-//      case 7:
-//        Serial.println("Fake a VU meter");
-//        break;
-//      case 8:
-//        Serial.println("Display a color shifting rainbow as wide as the LED's");
-//        break;         
-//      case 9:
-//        Serial.println("Display a color shifting rainbow wider than the LED's");
-//        break;     
-//      default:
-//        Serial.println("Unknown mode!");
-//        break;
-//      }
-//    }
-//    while (Serial.read() >= 0){
-//      ; // flush remaining characters
-//    }
-//  }
-//  switch(fadingMode){
-//  case 0:
-//    // Turn all LED's off.
-//    ShiftPWM.SetAll(0);
-//    break;
-//  case 1:
-//    oneByOne();
-//    break;
-//  case 2:
-//    inOutAll();
-//    break;
-//  case 3:
-//    inOutTwoLeds();
-//    break;
-//  case 4:
-//    alternatingColors();
-//    break;
-//  case 5:
-//    hueShiftAll();
-//    break;
-//  case 6:
-//    randomColors();
-//    break;
-//  case 7:
-//    fakeVuMeter();
-//    break;
-//  case 8:
-//    rgbLedRainbow(3000,numRGBLeds);
-//    break;
-//  case 9:
-//    rgbLedRainbow(10000,5*numRGBLeds);    
-//    break;   
-//  default:
-//    Serial.println("Unknown Mode!");
-//    delay(1000);
-//    break;
-//  }
-}
-
-void oneByOne(void){ // Fade in and fade out all outputs one at a time
-  unsigned char brightness;
-  unsigned long fadeTime = 500;
-  unsigned long loopTime = numOutputs*fadeTime*2;
-  unsigned long time = millis()-startTime;
-  unsigned long timer = time%loopTime;
-  unsigned long currentStep = timer%(fadeTime*2);
-
-  int activeLED = timer/(fadeTime*2);
-
-  if(currentStep <= fadeTime ){
-    brightness = currentStep*maxBrightness/fadeTime; ///fading in
-  }
-  else{
-    brightness = maxBrightness-(currentStep-fadeTime)*maxBrightness/fadeTime; ///fading out;
-  }
-  ShiftPWM.SetAll(0);
-  ShiftPWM.SetOne(activeLED, brightness);
-}
-
-void inOutTwoLeds(void){ // Fade in and out 2 outputs at a time
-  unsigned long fadeTime = 500;
-  unsigned long loopTime = numOutputs*fadeTime;
-  unsigned long time = millis()-startTime;
-  unsigned long timer = time%loopTime;
-  unsigned long currentStep = timer%fadeTime;
-
-  int activeLED = timer/fadeTime;
-  unsigned char brightness = currentStep*maxBrightness/fadeTime;
-
-  ShiftPWM.SetAll(0);
-  ShiftPWM.SetOne((activeLED+1)%numOutputs,brightness);
-  ShiftPWM.SetOne(activeLED,maxBrightness-brightness);
-}
-
-void inOutAll(void){  // Fade in all outputs
-  unsigned char brightness;
-  unsigned long fadeTime = 2000;
-  unsigned long time = millis()-startTime;
-  unsigned long currentStep = time%(fadeTime*2);
-
-  if(currentStep <= fadeTime ){
-    brightness = currentStep*maxBrightness/fadeTime; ///fading in
-  }
-  else{
-    brightness = maxBrightness-(currentStep-fadeTime)*maxBrightness/fadeTime; ///fading out;
-  }
-  ShiftPWM.SetAll(brightness);
-}
-
-void alternatingColors(void){ // Alternate LED's in 6 different colors
-  unsigned long holdTime = 2000;
-  unsigned long time = millis()-startTime;
-  unsigned long shift = (time/holdTime)%6;
-  for(unsigned int led=0; led<numRGBLeds; led++){
-    switch((led+shift)%6){
-    case 0:
-      ShiftPWM.SetRGB(led,maxBrightness,0,0);    // red
-      break;
-    case 1:
-      ShiftPWM.SetRGB(led,0,maxBrightness,0);    // green
-      break;
-    case 2:
-      ShiftPWM.SetRGB(led,0,0,maxBrightness);    // blue
-      break;
-    case 3:
-      ShiftPWM.SetRGB(led,maxBrightness,128,0);  // orange
-      break;
-    case 4:
-      ShiftPWM.SetRGB(led,0,maxBrightness,maxBrightness);  // turqoise
-      break;
-    case 5:
-      ShiftPWM.SetRGB(led,maxBrightness,0,maxBrightness);  // purple
-      break;
-    }
-  }
-}
-
-void hueShiftAll(void){  // Hue shift all LED's
-  unsigned long cycleTime = 10000;
-  unsigned long time = millis()-startTime;
-  unsigned long hue = (360*time/cycleTime)%360;
-  ShiftPWM.SetAllHSV(hue, maxBrightness, maxBrightness); 
-}
-
-void randomColors(void){  // Update random LED to random color. Funky!
-  unsigned long updateDelay = 100;
-  static unsigned long previousUpdateTime;
-  if(millis()-previousUpdateTime > updateDelay){
-    previousUpdateTime = millis();
-    ShiftPWM.SetHSV(random(numRGBLeds),random(360),maxBrightness,maxBrightness);
-  }
-}
-
-void fakeVuMeter(void){ // imitate a VU meter
-  static unsigned int peak = 0;
-  static unsigned int prevPeak = 0;
-  static unsigned long currentLevel = 0;
-  static unsigned long fadeStartTime = startTime;
-  
-  unsigned long fadeTime = (currentLevel*2);// go slower near the top
-
-  unsigned long time = millis()-fadeStartTime;
-  currentLevel = time%(fadeTime);
-
-  if(currentLevel==peak){
-    // get a new peak value
-    prevPeak = peak;
-    while(abs(peak-prevPeak)<5){
-      peak =  random(numRGBLeds); // pick a new peak value that differs at least 5 from previous peak
-    }
-  }
-
-  if(millis() - fadeStartTime > fadeTime){
-    fadeStartTime = millis();
-    if(currentLevel<peak){ //fading in
-      currentLevel++;
-    }
-    else{ //fading out
-      currentLevel--;
-    }
-  }
-  // animate to new top
-  for(unsigned int led=0;led<numRGBLeds;led++){
-    if(led<currentLevel){
-      int hue = (numRGBLeds-1-led)*120/numRGBLeds; // From green to red
-      ShiftPWM.SetHSV(led,hue,maxBrightness,maxBrightness); 
-    }
-    else if(led==currentLevel){
-      int hue = (numRGBLeds-1-led)*120/numRGBLeds; // From green to red
-      int value;
-      if(currentLevel<peak){ //fading in        
-        value = time*maxBrightness/fadeTime;
-      }
-      else{ //fading out
-        value = maxBrightness-time*maxBrightness/fadeTime;
-      }
-      ShiftPWM.SetHSV(led,hue,maxBrightness,value);       
-    }
-    else{
-      ShiftPWM.SetRGB(led,0,0,0);
-    }
-  }
 }
 
 void rgbLedRainbow(unsigned long cycleTime, int rainbowWidth){
@@ -570,46 +289,8 @@ void rgbLedRainbowLoveYou(unsigned long cycleTime, int rainbowWidth){
               ShiftPWM.SetOne(41, green); // write the HSV values, with saturation and value at maximum
               ShiftPWM.SetOne(42, blue); // write the HSV values, with saturation and value at maximum
               break;
-////      case 3: ShiftPWM.SetOne(17, hue); // write the HSV values, with saturation and value at maximum
-////              ShiftPWM.SetOne(20, hue); // write the HSV values, with saturation and value at maximum
-////              break;
-////      case 4: ShiftPWM.SetOne(18, hue); // write the HSV values, with saturation and value at maximum
-////              ShiftPWM.SetOne(21, hue); // write the HSV values, with saturation and value at maximum
-////              break;
-////      case 5: ShiftPWM.SetOne(19, hue); // write the HSV values, with saturation and value at maximum
-////              ShiftPWM.SetOne(22, hue); // write the HSV values, with saturation and value at maximum
-////              break;
-////      case 6: ShiftPWM.SetOne(24, hue); // write the HSV values, with saturation and value at maximum
-////              break;
-////      case 7: ShiftPWM.SetOne(25, hue); // write the HSV values, with saturation and value at maximum
-////              break;
-////      case 8: ShiftPWM.SetOne(26, hue); // write the HSV values, with saturation and value at maximum
-////              break;
     }
   }
-}
-
-void printInstructions(void){
-  Serial.println("---- ShiftPWM Non-blocking fades demo ----");
-  Serial.println("");
-  
-  Serial.println("Type 'l' to see the load of the ShiftPWM interrupt (the % of CPU time the AVR is busy with ShiftPWM)");
-  Serial.println("");
-  Serial.println("Type any of these numbers to set the demo to this mode:");
-  Serial.println("  0. All LED's off");
-  Serial.println("  1. Fade in and out one by one");
-  Serial.println("  2. Fade in and out all LED's");
-  Serial.println("  3. Fade in and out 2 LED's in parallel");
-  Serial.println("  4. Alternating LED's in 6 different colors");
-  Serial.println("  5. Hue shift all LED's");
-  Serial.println("  6. Setting random LED's to random color");
-  Serial.println("  7. Fake a VU meter");
-  Serial.println("  8. Display a color shifting rainbow as wide as the LED's");
-  Serial.println("  9. Display a color shifting rainbow wider than the LED's");  
-  Serial.println("");
-  Serial.println("Type 'm' to see this info again");  
-  Serial.println("");
-  Serial.println("----");
 }
 
 byte decToBcd(byte val)
@@ -639,13 +320,7 @@ dayOfMonth, byte month, byte year)
   Wire.endTransmission();
 }
 
-void readDS3231time(byte *second,
-byte *minute,
-byte *hour,
-byte *dayOfWeek,
-byte *dayOfMonth,
-byte *month,
-byte *year)
+void readDS3231time(byte *second, byte *minute, byte *hour, byte *dayOfWeek, byte *dayOfMonth, byte *month, byte *year)
 {
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
@@ -664,23 +339,13 @@ byte *year)
 void displayTime()
 {
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-  // retrieve data from DS3231
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-  &year);
-  // send it to the serial monitor
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   Serial.print(hour, DEC);
-  // convert the byte variable to a decimal number when displayed
   Serial.print(":");
-  if (minute<10)
-  {
-    Serial.print("0");
-  }
+  if (minute<10) Serial.print("0");
   Serial.print(minute, DEC);
   Serial.print(":");
-  if (second<10)
-  {
-    Serial.print("0");
-  }
+  if (second<10) Serial.print("0");
   Serial.print(second, DEC);
   Serial.print(" ");
   Serial.print(dayOfMonth, DEC);
@@ -973,6 +638,7 @@ void set_light(char const* text, led_state_t state)
 void parse_time()
 {
     readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+    tempHour = hour;
     if(minute >=0 && minute <= 2)
     {
       if(time_update == oclock){}
@@ -1681,6 +1347,7 @@ void parse_time()
         set_light("oclock", on);
       }
     }
+    hour = tempHour;
 }
 
 void hsvtorgb(unsigned char *r, unsigned char *g, unsigned char *b, unsigned char h, unsigned char s, unsigned char v)
